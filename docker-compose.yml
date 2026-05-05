@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: shopping_cart_db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: shopping-cart
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - shopping_cart_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shopping_cart_backend
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      MONGODB_URI: mongodb://admin:admin@mongodb:27017/shopping-cart?authSource=admin
+      JWT_SECRET: your_jwt_secret_key_here
+      JWT_EXPIRE: 7d
+      BCRYPT_ROUNDS: 10
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - shopping_cart_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: shopping_cart_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+    networks:
+      - shopping_cart_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  shopping_cart_network:
+    driver: bridge
